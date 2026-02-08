@@ -1,0 +1,252 @@
+<app-header></app-header>
+
+<div class="admin-dashboard-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>
+        <i class="bi bi-speedometer2"></i>
+        Panel de Administración
+      </h1>
+      <p class="subtitle">Gestión completa de la plataforma Polo 52</p>
+    </div>
+  </div>
+
+  <!-- Navegación de tabs -->
+  <div class="tabs-navigation">
+    <button
+      class="tab-btn"
+      [class.active]="activeView === 'dashboard'"
+      (click)="setActiveView('dashboard')">
+      <i class="bi bi-grid-fill"></i>
+      Dashboard
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeView === 'companies'"
+      (click)="setActiveView('companies')">
+      <i class="bi bi-building"></i>
+      Empresas
+      <span class="badge" *ngIf="stats.pendingCompanies > 0">{{ stats.pendingCompanies }}</span>
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeView === 'candidates'"
+      (click)="setActiveView('candidates')">
+      <i class="bi bi-people-fill"></i>
+      Candidatos
+    </button>
+  </div>
+
+  <!-- Vista: Dashboard -->
+  <div *ngIf="activeView === 'dashboard'" class="dashboard-view">
+    <!-- Estadísticas principales -->
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-icon">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Total Usuarios</span>
+          <span class="stat-value">{{ stats.totalUsers }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Candidatos</span>
+          <span class="stat-value">{{ stats.totalCandidates }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card info">
+        <div class="stat-icon">
+          <i class="bi bi-building"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Empresas</span>
+          <span class="stat-value">{{ stats.totalCompanies }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card danger">
+        <div class="stat-icon">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Empresas Pendientes</span>
+          <span class="stat-value">{{ stats.pendingCompanies }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empresas pendientes de verificación -->
+    <div class="section-card" *ngIf="pendingCompanies.length > 0">
+      <div class="section-header">
+        <h2>
+          <i class="bi bi-exclamation-circle"></i>
+          Empresas Pendientes de Verificación
+        </h2>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>Email</th>
+              <th>Fecha de Registro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let company of pendingCompanies">
+              <td><strong>{{ company.nombre }}</strong></td>
+              <td>{{ company.email }}</td>
+              <td>{{ company.created_at | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <button class="btn btn-success btn-sm" (click)="verifyCompany(company.email)">
+                  <i class="bi bi-check-circle"></i>
+                  Verificar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mensaje si no hay empresas pendientes -->
+    <div class="section-card" *ngIf="pendingCompanies.length === 0 && !loadingCompanies">
+      <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No hay empresas pendientes de verificación</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista: Empresas -->
+  <div *ngIf="activeView === 'companies'" class="companies-view">
+    <div class="section-card">
+      <div class="section-header">
+        <h2>
+          <i class="bi bi-building"></i>
+          Gestión de Empresas
+        </h2>
+        <div class="filters">
+          <button
+            class="filter-btn"
+            [class.active]="companyFilter === 'all'"
+            (click)="companyFilter = 'all'">
+            Todas ({{ allCompanies.length }})
+          </button>
+          <button
+            class="filter-btn"
+            [class.active]="companyFilter === 'verified'"
+            (click)="companyFilter = 'verified'">
+            Verificadas
+          </button>
+          <button
+            class="filter-btn"
+            [class.active]="companyFilter === 'pending'"
+            (click)="companyFilter = 'pending'">
+            Pendientes ({{ pendingCompanies.length }})
+          </button>
+        </div>
+      </div>
+
+      <div class="table-container" *ngIf="!loadingCompanies">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Empresa</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th>Fecha de Registro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let company of filteredCompanies">
+              <td>#{{ company.id }}</td>
+              <td><strong>{{ company.nombre }}</strong></td>
+              <td>{{ company.email }}</td>
+              <td>
+                <span class="status-badge" [class.verified]="company.verified" [class.pending]="!company.verified">
+                  {{ company.verified ? 'Verificada' : 'Pendiente' }}
+                </span>
+              </td>
+              <td>{{ company.created_at | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <button
+                  *ngIf="!company.verified"
+                  class="btn btn-success btn-sm"
+                  (click)="verifyCompany(company.email)">
+                  <i class="bi bi-check-circle"></i>
+                  Verificar
+                </button>
+                <span *ngIf="company.verified" class="text-muted">✓ Verificada</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="loading-container" *ngIf="loadingCompanies">
+        <div class="spinner"></div>
+        <p>Cargando empresas...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista: Candidatos -->
+  <div *ngIf="activeView === 'candidates'" class="candidates-view">
+    <div class="section-card">
+      <div class="section-header">
+        <h2>
+          <i class="bi bi-people-fill"></i>
+          Gestión de Candidatos
+        </h2>
+      </div>
+
+      <div class="table-container" *ngIf="!loadingCandidates">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>CV</th>
+              <th>Fecha de Registro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let candidate of recentCandidates">
+              <td>#{{ candidate.id }}</td>
+              <td><strong>{{ candidate.nombre }} {{ candidate.apellido }}</strong></td>
+              <td>{{ candidate.email }}</td>
+              <td>
+                <span class="cv-badge" *ngIf="candidate.cv_filename">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                  CV disponible
+                </span>
+                <span class="cv-badge no-cv" *ngIf="!candidate.cv_filename">
+                  Sin CV
+                </span>
+              </td>
+              <td>{{ candidate.created_at | date:'dd/MM/yyyy' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="loading-container" *ngIf="loadingCandidates">
+        <div class="spinner"></div>
+        <p>Cargando candidatos...</p>
+      </div>
+    </div>
+  </div>
+</div>

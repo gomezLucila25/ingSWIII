@@ -1,0 +1,98 @@
+<nav class="navbar navbar-expand-lg bg-white px-5 py-3">
+  <div class="container-fluid">
+
+    <!-- Logo -->
+    <a class="navbar-brand" routerLink="/">
+      <img src="assets/img/POLO52ROJO.png" alt="Polo 52" class="logo-img" />
+    </a>
+
+    <!-- Botón hamburguesa para mobile -->
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarContent"
+      aria-controls="navbarContent"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Menú dinámico -->
+    <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
+      <ul class="navbar-nav align-items-center custom-nav">
+
+        <!-- 🏠 LANDING PAGE (no logueado) -->
+        <ng-container *ngIf="isLandingPage && !isLoggedIn">
+          <li class="nav-item">
+            <a class="nav-link fw-semibold custom-link" href="#como-funciona">Cómo Funciona</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold custom-link" href="#contactanos">Contáctanos</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn custom-btn px-4 py-2" [routerLink]="['/login']">Ingresar</a>
+          </li>
+        </ng-container>
+
+        <!-- 🏠 LANDING (logueado) -->
+        <ng-container *ngIf="isLandingPage && isLoggedIn">
+          <li class="nav-item">
+            <button class="btn btn-outline-secondary me-2" (click)="onProfile()">
+              Mi Perfil
+            </button>
+          </li>
+          <li class="nav-item" *ngIf="isAdmin">
+            <button class="btn btn-outline-secondary me-2" (click)="onAdminDashboard()">
+              Panel Admin
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="btn custom-btn px-4 py-2" (click)="onLogout()">
+              Cerrar Sesión
+            </button>
+          </li>
+        </ng-container>
+
+        <!-- ⚠️ NO LOGUEADO en plataforma -->
+        <ng-container *ngIf="!isLandingPage && !isLoggedIn">
+          <li class="nav-item">
+            <span class="text-warning me-3">Necesitas iniciar sesión</span>
+          </li>
+          <li class="nav-item">
+            <button class="btn custom-btn px-4 py-2" (click)="onLogin()">
+              Iniciar Sesión
+            </button>
+          </li>
+        </ng-container>
+
+        <!-- 🔐 PÁGINAS LOGUEADAS (mi-perfil, admin-dashboard) -->
+        <ng-container *ngIf="!isLandingPage && isLoggedIn">
+          <!-- Mi Perfil - solo si NO estamos en mi-perfil -->
+          <li class="nav-item" *ngIf="!isMyUserPage">
+            <button class="btn btn-link nav-link fw-semibold custom-link" (click)="onProfile()">
+              Mi Perfil
+            </button>
+          </li>
+
+          <!-- Panel Admin - solo para administradores -->
+          <li class="nav-item" *ngIf="isAdmin && !isAdminDashboardPage">
+            <button class="btn btn-link nav-link fw-semibold custom-link" (click)="onAdminDashboard()">
+              <i class="bi bi-speedometer2"></i>
+              Panel Admin
+            </button>
+          </li>
+
+          <!-- Cerrar Sesión -->
+          <li class="nav-item">
+            <button class="btn custom-btn px-4 py-2" (click)="onLogout()">
+              Cerrar Sesión
+            </button>
+          </li>
+        </ng-container>
+
+      </ul>
+    </div>
+  </div>
+</nav>

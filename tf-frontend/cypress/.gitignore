@@ -1,0 +1,8 @@
+# Cypress artifacts
+screenshots/
+videos/
+downloads/
+results/
+
+# Cache
+.cache/

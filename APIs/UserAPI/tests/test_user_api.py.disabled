@@ -1,0 +1,79 @@
+# tests/test_user_api.py
+import pytest
+import sys
+import os
+from unittest.mock import patch, MagicMock
+
+# Agregar el directorio padre al path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Mockear la base de datos ANTES de importar main
+with patch('database.engine') as mock_engine:
+    mock_engine.configure_mock()
+    with patch('database.Base') as mock_base:
+        mock_base.metadata.create_all = MagicMock()
+        
+        # Ahora sí importar
+        from fastapi.testclient import TestClient
+        from main import app
+
+# Cliente de prueba
+client = TestClient(app)
+
+class TestBasicAPI:
+    """Tests básicos que funcionan sin base de datos"""
+    
+    def test_health_check(self):
+        """Test más básico - verifica que la API esté viva"""
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+        print("✅ Health check OK")
+    
+    def test_root_endpoint(self):
+        """Test del endpoint raíz"""
+        response = client.get("/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        print("✅ Root endpoint OK")
+    
+    @patch('routes.get_db')
+    def test_login_validation_empty(self, mock_get_db):
+        """Test de validación básica de login - datos vacíos"""
+        mock_get_db.return_value = MagicMock()
+        response = client.post("/api/v1/login", json={})
+        assert response.status_code == 422  # Validation error
+        print("✅ Validación login vacío OK")
+    
+    @patch('routes.get_db')
+    def test_register_candidato_validation_empty(self, mock_get_db):
+        """Test de validación básica de registro - datos vacíos"""
+        mock_get_db.return_value = MagicMock()
+        response = client.post("/api/v1/register-candidato", data={})
+        assert response.status_code == 422  # Validation error
+        print("✅ Validación registro vacío OK")
+
+class TestEndpointsExist:
+    """Verificar que los endpoints principales existen"""
+    
+    @patch('routes.get_db')
+    def test_endpoints_respond(self, mock_get_db):
+        """Verificar que los endpoints principales responden"""
+        mock_get_db.return_value = MagicMock()
+        
+        endpoints_to_test = [
+            "/api/v1/login",
+            "/api/v1/register-candidato", 
+            "/api/v1/verify-email"
+        ]
+        
+        for endpoint in endpoints_to_test:
+            # POST sin datos debería dar 422 (validation error), no 404
+            response = client.post(endpoint, json={})
+            assert response.status_code != 404, f"Endpoint {endpoint} no existe"
+            print(f"✅ Endpoint {endpoint} existe")
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
