@@ -3,9 +3,10 @@ name: Test GCP Connection
 # Autor: Lucila Gomez - IngSW3
 # Testing Google Cloud Platform integration
 
-# Manual trigger para configuración paso a paso
+# Auto trigger on push to main
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 env:
   PROJECT_ID: ingsw3lucilagomez
