@@ -1,0 +1,54 @@
+name: Test GCP Connection
+
+# Autor: Lucila Gomez - IngSW3
+# Testing Google Cloud Platform integration
+
+# Manual trigger para configuración paso a paso
+on:
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ingsw3lucilagomez
+  REGION: us-central1
+  REGISTRY_HOST: us-central1-docker.pkg.dev
+  REPOSITORY: cloud-run-source-deploy
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # ============================================
+  # TEST 1: Verificar conexión básica con GCP
+  # ============================================
+  test-gcp-connection:
+    name: Test GCP Connection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Test gcloud authentication
+        run: |
+          echo "🔧 Testing GCP authentication..."
+          gcloud auth list
+          echo ""
+          echo "📋 Current project:"
+          gcloud config get-value project
+          echo ""
+          echo "📍 Available regions:"
+          gcloud compute regions list --limit=5
+          echo ""
+          echo "🎯 Testing Artifact Registry access..."
+          gcloud artifacts repositories list --location=${{ env.REGION }} || echo "No repositories yet"
+          echo ""
+          echo "✅ GCP Connection Test Complete!"
