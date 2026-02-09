@@ -1,7 +1,7 @@
-name: Test GCP Connection
+name: Deploy Pipeline - IngSW3
 
-# Autor: Lucila Gomez - IngSW3
-# Testing Google Cloud Platform integration
+# Autor: Lucila Gomez - IngSW3  
+# Complete CI/CD Pipeline with GCP, SonarCloud, Docker builds and Cloud Run deployment
 
 # Auto trigger on push to main
 on:
