@@ -1,0 +1,356 @@
+# Azure DevOps Pipeline - Plataforma de Empleos
+# Autor: Lucila Gomez - IngSW3
+# Migrado desde Google Cloud a Azure
+
+trigger:
+- main
+
+variables:
+  # Azure Configuration
+  azureSubscription: 'Azure-Connection'
+  resourceGroup: 'rg-empleos-lucila'
+  location: 'East US'
+  
+  # Container Registry
+  containerRegistry: 'acrempleos2024.azurecr.io'
+  dockerRegistryServiceConnection: 'acr-empleos-connection'
+  
+  # Applications
+  backendAppQA: 'userapi-lucila-qa'
+  backendAppProd: 'userapi-lucila'
+  frontendAppQA: 'frontend-lucila-qa'
+  frontendAppProd: 'frontend-lucila'
+  
+  # Image names
+  backendImageRepository: 'userapi'
+  frontendImageRepository: 'frontend'
+  tag: '$(Build.BuildId)'
+
+  vmImageName: 'ubuntu-latest'
+
+stages:
+# ============================================
+# STAGE 1: BUILD BACKEND AND FRONTEND
+# ============================================
+- stage: Build
+  displayName: 'Build Backend and Frontend'
+  jobs:
+  - job: BuildBackend
+    displayName: 'Build Backend (UserAPI)'
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: 'Build Backend Image'
+      inputs:
+        command: build
+        repository: $(backendImageRepository)
+        dockerfile: 'APIs/UserAPI/Dockerfile'
+        buildContext: 'APIs/UserAPI'
+        tags: |
+          $(tag)
+          latest
+
+    - task: Docker@2
+      displayName: 'Push Backend Image to ACR'
+      inputs:
+        command: push
+        repository: $(backendImageRepository)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          latest
+
+  - job: BuildFrontend
+    displayName: 'Build Frontend (Angular)'
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    # Build QA version
+    - task: Docker@2
+      displayName: 'Build Frontend QA Image'
+      inputs:
+        command: build
+        repository: $(frontendImageRepository)-qa
+        dockerfile: 'tf-frontend/Dockerfile'
+        buildContext: 'tf-frontend'
+        arguments: '--build-arg BUILD_ENV=qa'
+        tags: |
+          qa-$(tag)
+          qa-latest
+
+    - task: Docker@2
+      displayName: 'Push Frontend QA Image to ACR'
+      inputs:
+        command: push
+        repository: $(frontendImageRepository)-qa
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          qa-$(tag)
+          qa-latest
+
+    # Build Production version
+    - task: Docker@2
+      displayName: 'Build Frontend Production Image'
+      inputs:
+        command: build
+        repository: $(frontendImageRepository)-prod
+        dockerfile: 'tf-frontend/Dockerfile'
+        buildContext: 'tf-frontend'
+        arguments: '--build-arg BUILD_ENV=production'
+        tags: |
+          prod-$(tag)
+          prod-latest
+
+    - task: Docker@2
+      displayName: 'Push Frontend Production Image to ACR'
+      inputs:
+        command: push
+        repository: $(frontendImageRepository)-prod
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          prod-$(tag)
+          prod-latest
+
+# ============================================
+# STAGE 2: DEPLOY TO QA
+# ============================================
+- stage: DeployQA
+  displayName: 'Deploy to QA'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployBackendQA
+    displayName: 'Deploy Backend to QA'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'qa'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Deploy Backend to QA'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(backendAppQA)
+              containers: $(containerRegistry)/$(backendImageRepository):$(tag)
+
+          - task: AzureCLI@2
+            displayName: 'Configure Backend QA Environment Variables'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Get secrets from Key Vault
+                DATABASE_URL=$(az keyvault secret show --name "DATABASE-URL" --vault-name "kv-empleos-lucila" --query "value" -o tsv)
+                SECRET_KEY=$(az keyvault secret show --name "SECRET-KEY" --vault-name "kv-empleos-lucila" --query "value" -o tsv)
+                INTERNAL_KEY=$(az keyvault secret show --name "INTERNAL-SERVICE-API-KEY" --vault-name "kv-empleos-lucila" --query "value" -o tsv)
+                
+                # Set environment variables
+                az webapp config appsettings set \
+                  --resource-group $(resourceGroup) \
+                  --name $(backendAppQA) \
+                  --settings \
+                  DATABASE_URL="$DATABASE_URL" \
+                  SECRET_KEY="$SECRET_KEY" \
+                  INTERNAL_SERVICE_API_KEY="$INTERNAL_KEY" \
+                  ALGORITHM="HS256" \
+                  ACCESS_TOKEN_EXPIRE_MINUTES="30" \
+                  PORT="8000"
+
+          - task: AzureCLI@2
+            displayName: 'Health Check Backend QA'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Waiting for backend QA to start..."
+                sleep 30
+                
+                BACKEND_URL="https://$(backendAppQA).azurewebsites.net"
+                echo "Testing backend health: $BACKEND_URL/health"
+                
+                RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health" || echo "000")
+                echo "Backend QA response code: $RESPONSE"
+                
+                if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "404" ]; then
+                  echo "Backend QA health check failed with code: $RESPONSE"
+                  exit 1
+                fi
+                echo "✅ Backend QA is healthy"
+
+  - deployment: DeployFrontendQA
+    displayName: 'Deploy Frontend to QA'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'qa'
+    dependsOn: DeployBackendQA
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Deploy Frontend to QA'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(frontendAppQA)
+              containers: $(containerRegistry)/$(frontendImageRepository)-qa:qa-$(tag)
+
+          - task: AzureCLI@2
+            displayName: 'Health Check Frontend QA'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Waiting for frontend QA to start..."
+                sleep 20
+                
+                FRONTEND_URL="https://$(frontendAppQA).azurewebsites.net"
+                echo "Testing frontend health: $FRONTEND_URL"
+                
+                RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL" || echo "000")
+                echo "Frontend QA response code: $RESPONSE"
+                
+                if [ "$RESPONSE" != "200" ]; then
+                  echo "Frontend QA health check failed with code: $RESPONSE"
+                  exit 1
+                fi
+                echo "✅ Frontend QA is healthy"
+
+# ============================================
+# STAGE 3: DEPLOY TO PRODUCTION (Manual Approval)
+# ============================================
+- stage: DeployProduction
+  displayName: 'Deploy to Production'
+  dependsOn: DeployQA
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployBackendProd
+    displayName: 'Deploy Backend to Production'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Deploy Backend to Production'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(backendAppProd)
+              containers: $(containerRegistry)/$(backendImageRepository):$(tag)
+
+          - task: AzureCLI@2
+            displayName: 'Configure Backend Production Environment Variables'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Get secrets from Key Vault
+                DATABASE_URL=$(az keyvault secret show --name "DATABASE-URL" --vault-name "kv-empleos-lucila" --query "value" -o tsv)
+                SECRET_KEY=$(az keyvault secret show --name "SECRET-KEY" --vault-name "kv-empleos-lucila" --query "value" -o tsv)
+                INTERNAL_KEY=$(az keyvault secret show --name "INTERNAL-SERVICE-API-KEY" --vault-name "kv-empleos-lucila" --query "value" -o tsv)
+                
+                # Set environment variables
+                az webapp config appsettings set \
+                  --resource-group $(resourceGroup) \
+                  --name $(backendAppProd) \
+                  --settings \
+                  DATABASE_URL="$DATABASE_URL" \
+                  SECRET_KEY="$SECRET_KEY" \
+                  INTERNAL_SERVICE_API_KEY="$INTERNAL_KEY" \
+                  ALGORITHM="HS256" \
+                  ACCESS_TOKEN_EXPIRE_MINUTES="120" \
+                  PORT="8000"
+
+          - task: AzureCLI@2
+            displayName: 'Health Check Backend Production'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Waiting for backend production to start..."
+                sleep 30
+                
+                BACKEND_URL="https://$(backendAppProd).azurewebsites.net"
+                echo "Testing backend health: $BACKEND_URL/health"
+                
+                RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health" || echo "000")
+                echo "Backend Production response code: $RESPONSE"
+                
+                if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "404" ]; then
+                  echo "Backend Production health check failed with code: $RESPONSE"
+                  exit 1
+                fi
+                echo "✅ Backend Production is healthy"
+
+  - deployment: DeployFrontendProd
+    displayName: 'Deploy Frontend to Production'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'production'
+    dependsOn: DeployBackendProd
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Deploy Frontend to Production'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(frontendAppProd)
+              containers: $(containerRegistry)/$(frontendImageRepository)-prod:prod-$(tag)
+
+          - task: AzureCLI@2
+            displayName: 'Health Check Frontend Production'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Waiting for frontend production to start..."
+                sleep 20
+                
+                FRONTEND_URL="https://$(frontendAppProd).azurewebsites.net"
+                echo "Testing frontend health: $FRONTEND_URL"
+                
+                RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL" || echo "000")
+                echo "Frontend Production response code: $RESPONSE"
+                
+                if [ "$RESPONSE" != "200" ]; then
+                  echo "Frontend Production health check failed with code: $RESPONSE"
+                  exit 1
+                fi
+                echo "✅ Frontend Production is healthy"
+
+          - task: AzureCLI@2
+            displayName: 'Display Final URLs'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo ""
+                echo "🎉 ¡DEPLOYMENT COMPLETO! 🎉"
+                echo "=================================="
+                echo ""
+                echo "📱 APLICACIÓN QA:"
+                echo "   Frontend: https://$(frontendAppQA).azurewebsites.net"
+                echo "   Backend:  https://$(backendAppQA).azurewebsites.net"
+                echo "   API Docs: https://$(backendAppQA).azurewebsites.net/docs"
+                echo ""
+                echo "🚀 APLICACIÓN PRODUCCIÓN:"
+                echo "   Frontend: https://$(frontendAppProd).azurewebsites.net"
+                echo "   Backend:  https://$(backendAppProd).azurewebsites.net"
+                echo "   API Docs: https://$(backendAppProd).azurewebsites.net/docs"
+                echo ""
+                echo "👤 Proyecto de: Lucila Gomez"
+                echo "📚 Materia: Ingeniería de Software 3"
+                echo "☁️ Plataforma: Microsoft Azure"

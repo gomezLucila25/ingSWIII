@@ -30,12 +30,13 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Ejecutar tareas al iniciar la aplicación"""
-    print("🚀 Iniciando UserAPI...")
+    print("🚀 Iniciando UserAPI en Azure...")
     print("✅ UserAPI iniciada correctamente")
+    print("👤 Proyecto de Lucila Gomez - IngSW3")
     print("📋 CORS permitido para:")
     print("   - http://localhost:4200")
-    print("   - https://frontend-qa-737714447258.us-central1.run.app")
-    print("   - https://frontend-737714447258.us-central1.run.app")
+    print("   - https://frontend-lucila.azurewebsites.net")
+    print("   - https://frontend-lucila-qa.azurewebsites.net")
 
 # Middleware para logging de requests
 @app.middleware("http")
@@ -51,8 +52,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:4200",  # Desarrollo local
-        "https://frontend-qa-737714447258.us-central1.run.app",  # QA
-        "https://frontend-737714447258.us-central1.run.app",  # Producción
+        "https://frontend-lucila-qa.azurewebsites.net",  # QA Azure
+        "https://frontend-lucila.azurewebsites.net",  # Producción Azure
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Permitir todos los métodos
