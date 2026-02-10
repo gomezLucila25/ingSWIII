@@ -409,3 +409,73 @@ jobs:
             exit 1
           fi
           echo "✅ All smoke tests passed!"
+
+  # ============================================
+  # FASE 6: Manual Approval for Production
+  # ============================================
+  approval:
+    name: Manual Approval for Production
+    needs: [smoke-tests]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Manual Approval Required
+        run: |
+          echo "🚦 Manual approval required for production deployment"
+          echo "✅ QA testing completed successfully"
+          echo "🎯 Ready for production deployment"
+
+  # ============================================
+  # FASE 7: Deploy Production en paralelo
+  # ============================================
+  deploy-backend-prod:
+    name: Deploy Backend to Production
+    needs: [approval]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Deploy Backend to Production
+        run: |
+          gcloud run deploy userapi-prod \
+            --image ${{ needs.build-backend.outputs.image }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "ALGORITHM=HS256,ACCESS_TOKEN_EXPIRE_MINUTES=120" \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest" \
+            --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:userapi-db \
+            --service-account=github-actions@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+
+  deploy-frontend-prod:
+    name: Deploy Frontend to Production
+    needs: [approval]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Deploy Frontend to Production
+        run: |
+          gcloud run deploy frontend-prod \
+            --image ${{ needs.build-frontend.outputs.image }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port=8080
