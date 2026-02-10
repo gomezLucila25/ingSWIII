@@ -327,8 +327,8 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "ALGORITHM=HS256,ACCESS_TOKEN_EXPIRE_MINUTES=30" \
-            --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest" \
-            --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:userapi-db \
+            --set-secrets "DATABASE_URL=DATABASE_URL_QA:latest,SECRET_KEY=SECRET_KEY:latest" \
+            --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:userapi-db-qa \
             --service-account=github-actions@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
   deploy-frontend-qa:
