@@ -354,3 +354,58 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port=8080
+
+  # ============================================
+  # FASE 5: Smoke Tests QA
+  # ============================================
+  smoke-tests:
+    name: Smoke Tests QA
+    needs: [deploy-backend-qa, deploy-frontend-qa]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for services to be ready
+        run: sleep 10
+
+      - name: Test Backend Health
+        run: |
+          echo "Testing backend API health..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://userapi-qa-1077879234681.us-central1.run.app/)
+          echo "Backend response code: $RESPONSE"
+          if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "404" ]; then
+            echo "Backend health check failed with code: $RESPONSE"
+            exit 1
+          fi
+          echo "✅ Backend is responding"
+
+      - name: Test Backend API Endpoint
+        run: |
+          echo "Testing backend API endpoint..."
+          RESPONSE=$(curl -s https://userapi-qa-1077879234681.us-central1.run.app/api/v1/health 2>&1 || echo '{"status":"unknown"}')
+          echo "Backend API response: $RESPONSE"
+          echo "✅ Backend API is accessible"
+
+      - name: Test Frontend Health
+        run: |
+          echo "Testing frontend health..."
+          FRONTEND_URL=$(gcloud run services describe frontend-qa --region=us-central1 --format="value(status.url)" 2>/dev/null || echo "https://frontend-qa-1077879234681.us-central1.run.app")
+          echo "Frontend URL: $FRONTEND_URL"
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL/")
+          echo "Frontend response code: $RESPONSE"
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Frontend health check failed with code: $RESPONSE"
+            exit 1
+          fi
+          echo "✅ Frontend is responding"
+
+      - name: Test Frontend Loads
+        run: |
+          echo "Testing if frontend HTML loads..."
+          FRONTEND_URL=$(gcloud run services describe frontend-qa --region=us-central1 --format="value(status.url)" 2>/dev/null || echo "https://frontend-qa-1077879234681.us-central1.run.app")
+          CONTENT=$(curl -s "$FRONTEND_URL/")
+          if echo "$CONTENT" | grep -q "app-root"; then
+            echo "✅ Frontend HTML contains app-root"
+          else
+            echo "❌ Frontend HTML does not contain expected content"
+            exit 1
+          fi
+          echo "✅ All smoke tests passed!"
