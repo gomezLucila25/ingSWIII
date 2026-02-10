@@ -19,7 +19,7 @@
         </div>
 
         <!-- Mostrar mensaje de error si existe -->
-        <div *ngIf="errorMessage" style="color: #b72c2c; text-align: center; margin: 10px 0; font-size: 14px; font-weight: 600;">
+        <div *ngIf="errorMessage" class="error-message" style="color: #b72c2c; text-align: center; margin: 10px 0; font-size: 14px; font-weight: 600;">
           {{ errorMessage }}
         </div>
   
@@ -34,7 +34,7 @@
   
         <p class="signup">
           Don't have an account?
-          <a routerLink="/user-config">Sign up now</a>
+          <a routerLink="/register">Sign up now</a>
         </p>
       </form>
     </div>

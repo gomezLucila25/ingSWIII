@@ -7,30 +7,139 @@
       <a routerLink="/">
         <img src="assets/img/POLO52ROJO.png" alt="Polo 52" class="logo" />
       </a>
-      <h2>Get Started Now</h2>
+      <h2>Registro de Usuario</h2>
+  
+      <!-- Selector de tipo de usuario -->
+      <div class="user-type-selector">
+        <button 
+          type="button" 
+          [class.active]="userType === 'candidato'" 
+          (click)="selectUserType('candidato')">
+          Candidato
+        </button>
+        <button 
+          type="button" 
+          [class.active]="userType === 'empresa'" 
+          (click)="selectUserType('empresa')">
+          Empresa
+        </button>
+      </div>
+
+      <!-- Mensaje de error global -->
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
   
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-        <input formControlName="name" type="text" placeholder="Name" />
-        <input formControlName="email" type="email" placeholder="Email or phone number" />
-        <input formControlName="password" type="password" placeholder="Enter password" />
+        <!-- Campos comunes -->
+        <div class="form-group">
+          <input 
+            id="email" 
+            formControlName="email" 
+            type="email" 
+            placeholder="Email" 
+            [class.error]="getErrorMessage('email')" />
+          <div class="field-error" *ngIf="getErrorMessage('email')">{{ getErrorMessage('email') }}</div>
+        </div>
+
+        <div class="form-group">
+          <input 
+            id="password" 
+            formControlName="password" 
+            type="password" 
+            placeholder="Contraseña" 
+            [class.error]="getErrorMessage('password')" />
+          <div class="field-error" *ngIf="getErrorMessage('password')">{{ getErrorMessage('password') }}</div>
+        </div>
+
+        <div class="form-group">
+          <input 
+            id="confirmPassword" 
+            formControlName="confirmPassword" 
+            type="password" 
+            placeholder="Confirmar contraseña" 
+            [class.error]="registerForm.errors?.['passwordMismatch'] && registerForm.get('confirmPassword')?.touched" />
+          <div class="field-error" *ngIf="registerForm.errors?.['passwordMismatch'] && registerForm.get('confirmPassword')?.touched">
+            Las contraseñas no coinciden
+          </div>
+        </div>
+
+        <div class="form-group">
+          <input 
+            id="nombre" 
+            formControlName="nombre" 
+            type="text" 
+            placeholder="Nombre" 
+            [class.error]="getErrorMessage('nombre')" />
+          <div class="field-error" *ngIf="getErrorMessage('nombre')">{{ getErrorMessage('nombre') }}</div>
+        </div>
+
+        <!-- Campos específicos de candidato -->
+        <ng-container *ngIf="userType === 'candidato'">
+          <div class="form-group">
+            <input 
+              id="apellido" 
+              formControlName="apellido" 
+              type="text" 
+              placeholder="Apellido" 
+              [class.error]="getErrorMessage('apellido')" />
+            <div class="field-error" *ngIf="getErrorMessage('apellido')">{{ getErrorMessage('apellido') }}</div>
+          </div>
+
+          <div class="form-group">
+            <select id="gender" formControlName="gender" [class.error]="getErrorMessage('gender')">
+              <option value="">Selecciona tu género</option>
+              <option value="masculino">Masculino</option>
+              <option value="femenino">Femenino</option>
+              <option value="otro">Otro</option>
+            </select>
+            <div class="field-error" *ngIf="getErrorMessage('gender')">{{ getErrorMessage('gender') }}</div>
+          </div>
+
+          <div class="form-group">
+            <input 
+              id="birthDate" 
+              formControlName="birthDate" 
+              type="date" 
+              placeholder="Fecha de nacimiento" 
+              [class.error]="getErrorMessage('birthDate')" />
+            <div class="field-error" *ngIf="getErrorMessage('birthDate')">{{ getErrorMessage('birthDate') }}</div>
+          </div>
+        </ng-container>
+
+        <!-- Campos específicos de empresa -->
+        <ng-container *ngIf="userType === 'empresa'">
+          <div class="form-group">
+            <textarea 
+              id="descripcion" 
+              formControlName="descripcion" 
+              placeholder="Descripción de la empresa" 
+              rows="3"
+              [class.error]="getErrorMessage('descripcion')"></textarea>
+            <div class="field-error" *ngIf="getErrorMessage('descripcion')">{{ getErrorMessage('descripcion') }}</div>
+          </div>
+        </ng-container>
   
         <div class="options">
           <label>
             <input type="checkbox" formControlName="terms" />
-            I agree to the terms & policy
+            Acepto los términos y condiciones
           </label>
         </div>
   
-        <button type="submit">Register</button>
+        <button type="submit" [disabled]="isLoading || !registerForm.valid">
+          <span *ngIf="isLoading">Registrando...</span>
+          <span *ngIf="!isLoading">Registrarse</span>
+        </button>
   
         <div class="google-login" (click)="registerWithGoogle()">
           <img src="assets/icons/google.png" alt="Google" />
-          Or sign in with Google
+          O regístrate con Google
         </div>
   
         <p class="signup">
-          Already have an account?
-          <a routerLink="/login">Sign in</a>
+          ¿Ya tienes una cuenta?
+          <a routerLink="/login">Iniciar sesión</a>
         </p>
       </form>
     </div>
