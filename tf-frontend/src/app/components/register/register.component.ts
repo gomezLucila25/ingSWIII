@@ -12,7 +12,7 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
-  registerForm: FormGroup;
+  registerForm!: FormGroup;
   userType: 'candidato' | 'empresa' = 'candidato';
   isLoading = false;
   errorMessage = '';
@@ -115,7 +115,7 @@ export class RegisterComponent {
 
     const today = new Date();
     const birth = new Date(birthDate);
-    const age = today.getFullYear() - birth.getFullYear();
+    let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
