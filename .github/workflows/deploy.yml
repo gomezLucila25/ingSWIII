@@ -431,10 +431,8 @@ jobs:
   # ============================================
   deploy-backend-prod:
     name: Deploy Backend to Production
-    needs: [approval]
+    needs: [approval, build-backend]
     runs-on: ubuntu-latest
-    environment:
-      name: production
     steps:
       - uses: google-github-actions/auth@v2
         with:
@@ -458,10 +456,8 @@ jobs:
 
   deploy-frontend-prod:
     name: Deploy Frontend to Production
-    needs: [approval]
+    needs: [approval, build-frontend]
     runs-on: ubuntu-latest
-    environment:
-      name: production
     steps:
       - uses: google-github-actions/auth@v2
         with:
