@@ -8,7 +8,9 @@
       "Read(/var/folders/ww/048gjybn33j9717qt82lj0g00000gn/T/TemporaryItems/NSIRD_screencaptureui_ZVPfvh/**)",
       "Read(/var/folders/ww/048gjybn33j9717qt82lj0g00000gn/T/TemporaryItems/NSIRD_screencaptureui_7T5Hqs/**)",
       "Bash(gcloud run services list:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gcloud run services describe:*)",
+      "Read(/var/folders/ww/048gjybn33j9717qt82lj0g00000gn/T/TemporaryItems/NSIRD_screencaptureui_5lkEQj/**)"
     ],
     "deny": [],
     "ask": []

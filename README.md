@@ -2,6 +2,8 @@
 
 Plataforma de aplicación de empleos construida con Angular 19 + FastAPI, desplegada en Google Cloud Platform con CI/CD mediante GitHub Actions.
 
+<!-- Database separation fix: QA and PROD environments use separate databases -->
+
 ## 📋 Tabla de Contenidos
 - [Descripción](#descripción)
 - [Arquitectura](#arquitectura)
