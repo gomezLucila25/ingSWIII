@@ -130,7 +130,22 @@ export class RegisterComponent {
   }
 
   async onSubmit() {
-    if (!this.registerForm.valid) {
+    console.log('=== REGISTRO DEBUG ===');
+    console.log('Form valid:', this.registerForm.valid);
+    console.log('Form errors:', this.registerForm.errors);
+    console.log('User type:', this.userType);
+    console.log('Form values:', this.registerForm.value);
+    
+    // Verificar validez de campos individuales
+    Object.keys(this.registerForm.controls).forEach(key => {
+      const control = this.registerForm.get(key);
+      if (control?.errors) {
+        console.log(`Campo ${key} tiene errores:`, control.errors);
+      }
+    });
+
+    if (!this.isFormValid()) {
+      console.log('Form no es válido, marcando campos...');
       this.markFormGroupTouched();
       return;
     }

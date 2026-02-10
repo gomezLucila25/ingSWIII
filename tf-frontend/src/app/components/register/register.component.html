@@ -134,10 +134,14 @@
         </button>
 
         <!-- Debug info (temporal) -->
-        <div style="font-size: 10px; margin-top: 5px; color: #666;" *ngIf="false">
+        <div style="font-size: 10px; margin-top: 5px; color: #666; border: 1px solid #ccc; padding: 5px;">
+          <strong>DEBUG INFO:</strong><br>
           Form Valid: {{ registerForm.valid }}<br>
+          isFormValid(): {{ isFormValid() }}<br>
           Loading: {{ isLoading }}<br>
-          Password Match: {{ !registerForm.errors?.['passwordMismatch'] }}
+          Password Match: {{ !registerForm.errors?.['passwordMismatch'] }}<br>
+          User Type: {{ userType }}<br>
+          Terms: {{ registerForm.get('terms')?.value }}
         </div>
   
         <div class="google-login" (click)="registerWithGoogle()">
