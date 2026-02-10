@@ -292,8 +292,8 @@ jobs:
           IMAGE="${REGISTRY_HOST}/${PROJECT_ID}/${REPOSITORY}/frontend-qa:${GITHUB_SHA}"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
-      - name: Build frontend QA image
-        run: docker build --build-arg BUILD_ENV=qa -t ${{ steps.vars.outputs.image }} ./tf-frontend
+      - name: Build frontend QA image  
+        run: docker build --build-arg BUILD_ENV=qa --build-arg ANGULAR_BUILD=build -t ${{ steps.vars.outputs.image }} ./tf-frontend
 
       - name: Push frontend QA image
         run: docker push ${{ steps.vars.outputs.image }}
