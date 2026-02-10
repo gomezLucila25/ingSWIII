@@ -59,7 +59,7 @@
             type="password" 
             placeholder="Confirmar contraseña" 
             [class.error]="registerForm.errors?.['passwordMismatch'] && registerForm.get('confirmPassword')?.touched" />
-          <div class="field-error" *ngIf="registerForm.errors?.['passwordMismatch'] && registerForm.get('confirmPassword')?.touched">
+          <div class="field-error" *ngIf="registerForm.errors?.['passwordMismatch'] && (registerForm.get('confirmPassword')?.touched || registerForm.get('confirmPassword')?.dirty)">
             Las contraseñas no coinciden
           </div>
         </div>
@@ -82,7 +82,8 @@
               formControlName="apellido" 
               type="text" 
               placeholder="Apellido" 
-              [class.error]="getErrorMessage('apellido')" />
+              [class.error]="getErrorMessage('apellido')"
+              (input)="onApellidoInput($event)" />
             <div class="field-error" *ngIf="getErrorMessage('apellido')">{{ getErrorMessage('apellido') }}</div>
           </div>
 
@@ -127,10 +128,17 @@
           </label>
         </div>
   
-        <button type="submit" [disabled]="isLoading || !registerForm.valid">
+        <button type="submit" [disabled]="isLoading || !isFormValid()">
           <span *ngIf="isLoading">Registrando...</span>
           <span *ngIf="!isLoading">Registrarse</span>
         </button>
+
+        <!-- Debug info (temporal) -->
+        <div style="font-size: 10px; margin-top: 5px; color: #666;" *ngIf="false">
+          Form Valid: {{ registerForm.valid }}<br>
+          Loading: {{ isLoading }}<br>
+          Password Match: {{ !registerForm.errors?.['passwordMismatch'] }}
+        </div>
   
         <div class="google-login" (click)="registerWithGoogle()">
           <img src="assets/icons/google.png" alt="Google" />

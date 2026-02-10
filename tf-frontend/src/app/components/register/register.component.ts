@@ -180,29 +180,83 @@ export class RegisterComponent {
     });
   }
 
+  onApellidoInput(event: any): void {
+    const input = event.target;
+    const value = input.value;
+    
+    // Remover caracteres que no sean letras, espacios, acentos o ñ
+    const sanitized = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    
+    if (sanitized !== value) {
+      // Actualizar el valor del input y del formulario
+      input.value = sanitized;
+      this.registerForm.get('apellido')?.setValue(sanitized);
+    }
+  }
+
   getErrorMessage(fieldName: string): string {
     const control = this.registerForm.get(fieldName);
-    if (!control || !control.errors || !control.touched) {
+    if (!control || !control.errors || (!control.touched && !control.dirty)) {
       return '';
     }
 
     if (control.errors['required']) {
-      return `${fieldName} es requerido`;
+      switch(fieldName) {
+        case 'email': return 'El email es requerido';
+        case 'password': return 'La contraseña es requerida';
+        case 'confirmPassword': return 'Confirmar contraseña es requerido';
+        case 'nombre': return 'El nombre es requerido';
+        case 'apellido': return 'El apellido es requerido';
+        case 'gender': return 'El género es requerido';
+        case 'birthDate': return 'La fecha de nacimiento es requerida';
+        case 'descripcion': return 'La descripción es requerida';
+        default: return `${fieldName} es requerido`;
+      }
     }
     if (control.errors['email']) {
-      return 'Formato de email inválido';
+      return 'Ingrese un email válido';
     }
     if (control.errors['minlength']) {
-      return 'Contraseña debe tener al menos 8 caracteres';
+      return 'La contraseña debe tener al menos 8 caracteres';
     }
     if (control.errors['onlyLetters']) {
-      return 'Solo se permiten letras';
+      return 'Solo se permiten letras y espacios';
     }
     if (control.errors['underage']) {
       return 'Debes ser mayor de 18 años';
     }
     
     return '';
+  }
+
+  isFormValid(): boolean {
+    // Validar que el formulario básico sea válido
+    if (!this.registerForm.valid) {
+      return false;
+    }
+
+    // Validar que las contraseñas coincidan
+    if (this.registerForm.errors?.['passwordMismatch']) {
+      return false;
+    }
+
+    // Validar campos específicos por tipo de usuario
+    if (this.userType === 'candidato') {
+      const apellido = this.registerForm.get('apellido')?.value;
+      const gender = this.registerForm.get('gender')?.value;
+      const birthDate = this.registerForm.get('birthDate')?.value;
+      
+      if (!apellido || !gender || !birthDate) {
+        return false;
+      }
+    } else {
+      const descripcion = this.registerForm.get('descripcion')?.value;
+      if (!descripcion) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   registerWithGoogle() {
