@@ -19,6 +19,7 @@ describe('Error Handling - Integración Frontend-Backend', () => {
       cy.get('input#apellido').type('Usuario')
       cy.get('select#gender').select('masculino')
       cy.get('input#birthDate').type('1990-01-01')
+      cy.get('input[type="checkbox"][formControlName="terms"]').check()
 
       cy.wait(500)
       cy.get('button[type="submit"]').click()
@@ -36,13 +37,14 @@ describe('Error Handling - Integración Frontend-Backend', () => {
       cy.get('input#apellido').type('Usuario')
       cy.get('select#gender').select('masculino')
       cy.get('input#birthDate').type('1990-01-01')
+      cy.get('input[type="checkbox"][formControlName="terms"]').check()
 
       cy.wait(500)
       cy.get('button[type="submit"]').click()
 
       // Debe mostrar un mensaje de error
-      cy.wait(2000)
-      cy.get('.error').should('be.visible')
+      cy.wait(3000)
+      cy.get('.error-message').should('be.visible')
     })
 
     it('debería mostrar error con formato de email inválido', () => {
@@ -111,13 +113,8 @@ describe('Error Handling - Integración Frontend-Backend', () => {
       // Debe permanecer en login y mostrar error
       cy.url().should('include', '/login')
 
-      // Buscar mensaje de error
-      cy.get('body').should('satisfy', ($body) => {
-        const text = $body.text().toLowerCase()
-        return text.includes('error') ||
-               text.includes('incorrect') ||
-               text.includes('incorrecto')
-      })
+      // Debe mostrar mensaje de error
+      cy.get('.error-message').should('be.visible')
     })
 
     it('debería mostrar error con campos vacíos', () => {
@@ -236,7 +233,7 @@ describe('Error Handling - Integración Frontend-Backend', () => {
       cy.wait(500)
 
       // Debe mostrar mensaje de error
-      cy.contains('La contraseña debe tener al menos 6 caracteres').should('be.visible')
+      cy.contains('La contraseña debe tener al menos 8 caracteres').should('be.visible')
       cy.get('button[type="submit"]').should('be.disabled')
     })
   })

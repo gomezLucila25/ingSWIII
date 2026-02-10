@@ -46,6 +46,9 @@ describe('Registro de Candidato - CRUD CREATE', () => {
     // Ingresar fecha de nacimiento
     cy.get('input#birthDate').clear().type(candidato.birthDate)
 
+    // Marcar checkbox de términos y condiciones
+    cy.get('input[type="checkbox"][formControlName="terms"]').check()
+
     // Esperar un momento para que las validaciones se procesen
     cy.wait(500)
 

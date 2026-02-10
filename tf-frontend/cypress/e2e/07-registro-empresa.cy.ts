@@ -45,6 +45,9 @@ describe('Registro de Empresa - CRUD CREATE', () => {
     // Llenar datos específicos de empresa
     cy.get('textarea#descripcion').clear().type(empresa.descripcion)
 
+    // Marcar checkbox de términos y condiciones
+    cy.get('input[type="checkbox"][formControlName="terms"]').check()
+
     // Esperar un momento para que las validaciones se procesen
     cy.wait(500)
 
